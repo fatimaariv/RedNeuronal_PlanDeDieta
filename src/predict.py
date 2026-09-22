@@ -99,19 +99,32 @@ def predecir_usuario(edad, sexo, altura_cm, peso_kg, nivel_actividad, objetivo):
     return resultado
 
 
-# --- 7. Ejemplo de uso, para probar que todo funciona ---
+# --- 7. Modo interactivo: preguntarle a la red directamente en la terminal ---
 # Esto solo corre si ejecutas ESTE archivo directamente
 # (no corre si otro archivo hace "from predict import predecir_usuario").
 if __name__ == "__main__":
-    ejemplo = predecir_usuario(
-        edad=25,
-        sexo="mujer",
-        altura_cm=165,
-        peso_kg=60,
-        nivel_actividad="moderado",
-        objetivo="bajar"
+    print("=== Predicción de calorías y macros ===\n")
+
+    # input() siempre devuelve texto (string), por eso hay que convertir
+    # edad/altura/peso a número con int()/float() antes de usarlos.
+    edad = int(input("Edad: "))
+    sexo = input("Sexo (hombre/mujer): ").strip().lower()
+    altura_cm = float(input("Altura en cm: "))
+    peso_kg = float(input("Peso en kg: "))
+    nivel_actividad = input(
+        "Nivel de actividad (sedentario/ligero/moderado/intenso/muy_intenso): "
+    ).strip().lower()
+    objetivo = input("Objetivo (bajar/mantener/subir): ").strip().lower()
+
+    resultado = predecir_usuario(
+        edad=edad,
+        sexo=sexo,
+        altura_cm=altura_cm,
+        peso_kg=peso_kg,
+        nivel_actividad=nivel_actividad,
+        objetivo=objetivo
     )
 
-    print("\nPredicción para la persona de ejemplo:")
-    for nombre, valor in ejemplo.items():
+    print("\n=== Resultado ===")
+    for nombre, valor in resultado.items():
         print(f"  {nombre}: {valor}")
