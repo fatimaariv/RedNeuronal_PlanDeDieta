@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriAI — Plan Nutricional Inteligente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <header class="hero-header">
+            <span class="badge-ia">RED NEURONAL + USDA FOODDATA</span>
+            <h1>Diseña tu plan nutricional <strong>personalizado</strong></h1>
+            <p class="subtitle">
+                Responde este breve cuestionario. Nuestra red neuronal calculará tus requerimientos diarios
+                y adaptará tus comidas reales a tus horarios y salud.
+            </p>
+        </header>
+
+        {% if error %}
+        <div class="alert-error">
+            <strong>Revisa tus horarios:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/predecir" method="POST" class="quiz-form">
+            <!-- SECCIÓN 1: DATOS BIOMÉTRICOS -->
+            <section class="card">
+                <div class="step-header">
+                    <span class="step-number">01</span>
+                    <div>
+                        <h2>Perfil Biométrico y Objetivo</h2>
+                        <p class="step-desc">Datos que procesa directamente la red neuronal.</p>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="edad">Edad (años)</label>
+                        <input type="number" id="edad" name="edad" min="15" max="100" placeholder="Ej. 25" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="peso">Peso (kg)</label>
+                        <input type="number" id="peso" name="peso" step="0.1" min="30" max="250" placeholder="Ej. 65.0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="altura">Altura (cm)</label>
+                        <input type="number" id="altura" name="altura" min="120" max="230" placeholder="Ej. 170" required>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="sexo">Sexo biológico</label>
+                        <select id="sexo" name="sexo" onchange="toggleEmbarazo()" required>
+                            <option value="mujer">Mujer</option>
+                            <option value="hombre">Hombre</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="actividad">Nivel de actividad física</label>
+                        <select id="actividad" name="actividad" required>
+                            <option value="sedentario">Sedentario (poco o nada)</option>
+                            <option value="ligero">Ligero (1-3 días/sem)</option>
+                            <option value="moderado" selected>Moderado (3-5 días/sem)</option>
+                            <option value="intenso">Intenso (6-7 días/sem)</option>
+                            <option value="muy_intenso">Muy intenso (doble sesión)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="objetivo">Objetivo principal</label>
+                        <select id="objetivo" name="objetivo" required>
+                            <option value="bajar">Bajar peso / Definir</option>
+                            <option value="mantener">Mantener peso actual</option>
+                            <option value="subir">Subir masa muscular</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="grupo-embarazo" class="sub-panel">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="embarazo">¿Te encuentras embarazada?</label>
+                            <select id="embarazo" name="embarazo" onchange="toggleTrimestre()">
+                                <option value="no" selected>No</option>
+                                <option value="si">Sí</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="grupo-trimestre" style="display: none;">
+                            <label for="trimestre">Trimestre</label>
+                            <select id="trimestre" name="trimestre">
+                                <option value="1">1° Trimestre</option>
+                                <option value="2">2° Trimestre</option>
+                                <option value="3">3° Trimestre</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: FILTROS DE SEGURIDAD -->
+            <section class="card">
+                <div class="step-header">
+                    <span class="step-number">02</span>
+                    <div>
+                        <h2>Filtros de Salud y Alergias</h2>
+                        <p class="step-desc">Excluiremos automáticamente alimentos incompatibles con tu perfil.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Condiciones médicas (selecciona todas las que apliquen):</label>
+                    <div class="pills-grid">
+                        <label class="pill-check"><input type="checkbox" name="enfermedades" value="diabetes"><span>Diabetes</span></label>
+                        <label class="pill-check"><input type="checkbox" name="enfermedades" value="hipertension"><span>Hipertensión</span></label>
+                        <label class="pill-check"><input type="checkbox" name="enfermedades" value="enfermedad_renal"><span>Enfermedad renal</span></label>
+                        <label class="pill-check"><input type="checkbox" name="enfermedades" value="hipotiroidismo"><span>Hipotiroidismo</span></label>
+                        <label class="pill-check"><input type="checkbox" name="enfermedades" value="otra"><span>Otra</span></label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Alergias o intolerancias alimentarias:</label>
+                    <div class="pills-grid">
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="lacteos"><span>Lácteos</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="gluten"><span>Gluten</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="frutos_secos"><span>Frutos secos</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="mariscos"><span>Mariscos</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="huevo"><span>Huevo</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="soya"><span>Soya</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="otra"><span>Otra</span></label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: HORARIOS Y PREFERENCIAS -->
+            <section class="card">
+                <div class="step-header">
+                    <span class="step-number">03</span>
+                    <div>
+                        <h2>Rutina y Horarios del Día</h2>
+                        <p class="step-desc">Calcularemos a qué hora exacta te conviene realizar cada comida.</p>
+                    </div>
+                </div>
+
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="hora_despertar">Hora de despertar</label>
+                        <input type="time" id="hora_despertar" name="hora_despertar" value="07:00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hora_dormir">Hora de dormir</label>
+                        <input type="time" id="hora_dormir" name="hora_dormir" value="23:00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="num_comidas">Comidas al día</label>
+                        <select id="num_comidas" name="num_comidas" required>
+                            <option value="3">3 comidas (Desayuno, Comida, Cena)</option>
+                            <option value="4" selected>4 comidas (+ 1 Snack)</option>
+                            <option value="5">5 comidas (+ 2 Snacks)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sub-panel">
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label for="tiene_actividad_principal">¿Estudias o trabajas?</label>
+                            <select id="tiene_actividad_principal" name="tiene_actividad_principal" onchange="toggleBloque('bloque-act', this.value)">
+                                <option value="si" selected>Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group bloque-act">
+                            <label for="act_inicio">Inicio estudio/trabajo</label>
+                            <input type="time" id="act_inicio" name="act_inicio" value="09:00">
+                        </div>
+                        <div class="form-group bloque-act">
+                            <label for="act_fin">Fin estudio/trabajo</label>
+                            <input type="time" id="act_fin" name="act_fin" value="17:00">
+                        </div>
+                    </div>
+
+                    <div class="grid-3 bloque-act">
+                        <div class="form-group">
+                            <label for="tiene_descanso">¿Tienes descanso para comer?</label>
+                            <select id="tiene_descanso" name="tiene_descanso" onchange="toggleBloque('bloque-desc', this.value)">
+                                <option value="si" selected>Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group bloque-desc">
+                            <label for="desc_inicio">Inicio descanso</label>
+                            <input type="time" id="desc_inicio" name="desc_inicio" value="13:00">
+                        </div>
+                        <div class="form-group bloque-desc">
+                            <label for="desc_fin">Fin descanso</label>
+                            <input type="time" id="desc_fin" name="desc_fin" value="13:30">
+                        </div>
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label for="hace_deporte">¿Haces deporte?</label>
+                            <select id="hace_deporte" name="hace_deporte" onchange="toggleBloque('bloque-dep', this.value)">
+                                <option value="si" selected>Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group bloque-dep">
+                            <label for="dep_inicio">Inicio entrenamiento</label>
+                            <input type="time" id="dep_inicio" name="dep_inicio" value="18:30">
+                        </div>
+                        <div class="form-group bloque-dep">
+                            <label for="dep_fin">Fin entrenamiento</label>
+                            <input type="time" id="dep_fin" name="dep_fin" value="19:30">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label class="pill-check full-width">
+                        <input type="checkbox" name="incluir_usda" value="si" checked>
+                        <span>Consultar alimentos reales en USDA FoodData Central y calcular gramos exactos (tarda ~8 segundos)</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="btn-submit" onclick="mostrarCargando()">
+                    Generar Mi Plan Nutricional
+                </button>
+            </section>
+        </form>
+    </div>
+
+    <script>
+        function toggleEmbarazo() {
+            const sexo = document.getElementById('sexo').value;
+            document.getElementById('grupo-embarazo').style.display = (sexo === 'mujer') ? 'block' : 'none';
+        }
+        function toggleTrimestre() {
+            const emb = document.getElementById('embarazo').value;
+            document.getElementById('grupo-trimestre').style.display = (emb === 'si') ? 'block' : 'none';
+        }
+        function toggleBloque(clase, valor) {
+            document.querySelectorAll('.' + clase).forEach(el => {
+                el.style.display = (valor === 'si') ? 'block' : 'none';
+            });
+        }
+        function mostrarCargando() {
+            const form = document.querySelector('.quiz-form');
+            if (form.checkValidity()) {
+                const btn = document.getElementById('btn-submit');
+                btn.innerText = 'Calculando red neuronal y consultando USDA...';
+                btn.style.opacity = '0.8';
+            }
+        }
+    </script>
+</body>
+</html>

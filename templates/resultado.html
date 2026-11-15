@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Plan Semanal — NutriAI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <header class="hero-header">
+            <span class="badge-ia">PREDICCIÓN COMPLETADA</span>
+            <h1>Tu requerimiento diario y <strong>plan semanal</strong></h1>
+            <p class="subtitle">Calculado con tu red neuronal y adaptado a tus horarios y restricciones.</p>
+        </header>
+
+        <!-- TARJETAS DE MACROS DIARIOS (PREDICCIÓN DE LA RED) -->
+        <section class="macros-grid">
+            <div class="macro-box highlight">
+                <span class="macro-label">Calorías Diarias</span>
+                <span class="macro-num">{{ datos.resultado_red.calorias_diarias }}</span>
+                <span class="macro-unit">kcal / día</span>
+            </div>
+            <div class="macro-box">
+                <span class="macro-label">Proteína</span>
+                <span class="macro-num">{{ datos.resultado_red.proteina_g }}g</span>
+                <span class="macro-unit">diarios</span>
+            </div>
+            <div class="macro-box">
+                <span class="macro-label">Carbohidratos</span>
+                <span class="macro-num">{{ datos.resultado_red.carbohidratos_g }}g</span>
+                <span class="macro-unit">diarios</span>
+            </div>
+            <div class="macro-box">
+                <span class="macro-label">Grasas</span>
+                <span class="macro-num">{{ datos.resultado_red.grasas_g }}g</span>
+                <span class="macro-unit">diarios</span>
+            </div>
+        </section>
+
+        <!-- AVISOS DE SEGURIDAD SI EXISTEN -->
+        {% if datos.avisos_seguridad %}
+        <section class="alert-warning">
+            <h3>Avisos de Seguridad y Revisión Manual</h3>
+            <ul>
+                {% for aviso in datos.avisos_seguridad %}
+                <li>{{ aviso }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        <!-- SELECTOR DE DÍAS DE LA SEMANA -->
+        <section class="card">
+            <div class="days-tabs">
+                {% for dia in datos.plan_semana.keys() %}
+                <button type="button" class="day-tab {% if loop.first %}active{% endif %}" onclick="seleccionarDia('{{ dia }}', this)">
+                    {{ dia.capitalize() }}
+                </button>
+                {% endfor %}
+            </div>
+
+            {% for dia, comidas in datos.plan_semana.items() %}
+            <div id="panel-{{ dia }}" class="day-panel" style="{% if not loop.first %}display: none;{% endif %}">
+                <div class="meals-list">
+                    {% for comida in comidas %}
+                    <div class="meal-card">
+                        <div class="meal-top">
+                            <div class="meal-title">
+                                <span class="meal-time">{{ comida.hora }}</span>
+                                <h3>{{ nombres_comida.get(comida.comida, comida.comida.capitalize()) }}</h3>
+                            </div>
+                            <div class="meal-macros-badge">
+                                <strong>{{ comida.calorias_diarias|round|int }} kcal</strong>
+                                <span>P: {{ comida.proteina_g }}g • C: {{ comida.carbohidratos_g }}g • G: {{ comida.grasas_g }}g</span>
+                            </div>
+                        </div>
+
+                        {% if incluir_usda and comida.alimentos %}
+                        <div class="foods-table">
+                            <p class="foods-subtitle">Sugerencia de alimentos reales (USDA FoodData Central):</p>
+                            <ul>
+                                {% for alim in comida.alimentos %}
+                                <li>
+                                    <span class="food-name">{{ alim.nombre }} <small>({{ categoria_es.get(alim.categoria, alim.categoria) }})</small></span>
+                                    <span class="food-grams">{{ alim.gramos }} g</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% elif incluir_usda %}
+                        <p class="empty-foods">No se pudieron cargar alimentos de USDA (revisa el límite de tu API key en .env).</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <a href="/" class="btn-back">Realizar nuevo cálculo</a>
+        </section>
+    </div>
+
+    <script>
+        function seleccionarDia(dia, boton) {
+            document.querySelectorAll('.day-panel').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+            document.getElementById('panel-' + dia).style.display = 'block';
+            boton.classList.add('active');
+        }
+    </script>
+</body>
+</html>

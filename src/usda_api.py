@@ -36,6 +36,7 @@ try:
 except ImportError:
     pass
 
+
 API_KEY = os.environ.get("USDA_API_KEY")
 URL_BASE = "https://api.nal.usda.gov/fdc/v1"
 

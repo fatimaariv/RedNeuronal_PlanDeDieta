@@ -1,0 +1,429 @@
+:root {
+    --bg-main: #111215;
+    --bg-card: #1a1c22;
+    --bg-input: #121317;
+    --border-color: #2b2e38;
+    --accent: #b5e83f;
+    --accent-hover: #a0d42c;
+    --text-main: #ffffff;
+    --text-muted: #9da3b4;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+    background-image: radial-gradient(circle at 50% 0%, #1f232b 0%, #111215 65%);
+}
+
+.app-container {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+.hero-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.badge-ia {
+    display: inline-block;
+    background: rgba(181, 232, 63, 0.14);
+    color: var(--accent);
+    border: 1px solid rgba(181, 232, 63, 0.35);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    margin-bottom: 1rem;
+}
+
+.hero-header h1 {
+    font-size: 2.2rem;
+    font-weight: 300;
+    margin: 0 0 0.75rem 0;
+}
+
+.hero-header h1 strong {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.subtitle {
+    color: var(--text-muted);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.step-number {
+    background: var(--accent);
+    color: #111215;
+    font-weight: 800;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.step-desc {
+    margin: 0.2rem 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.1rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.1rem;
+}
+
+.form-group {
+    margin-bottom: 1.1rem;
+}
+
+label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 0.45rem;
+}
+
+input[type="number"],
+input[type="time"],
+select {
+    width: 100%;
+    padding: 11px 14px;
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.98rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(181, 232, 63, 0.18);
+}
+
+.sub-panel {
+    background: rgba(17, 18, 21, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.2rem 1.2rem 0.2rem 1.2rem;
+    margin-top: 0.5rem;
+}
+
+/* Checkboxes estilo píldora interactiva */
+.pills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.pill-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    padding: 9px 14px;
+    border-radius: 25px;
+    cursor: pointer;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    margin-bottom: 0;
+}
+
+.pill-check.full-width {
+    width: 100%;
+    border-radius: 12px;
+    padding: 12px 16px;
+}
+
+.pill-check:hover {
+    border-color: var(--accent);
+}
+
+.pill-check input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+button[type="submit"],
+.btn-back {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background-color: var(--accent);
+    color: #111215;
+    border: none;
+    border-radius: 30px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 1.2rem;
+    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(181, 232, 63, 0.28);
+}
+
+.btn-back {
+    background-color: #262933;
+    color: var(--text-main);
+    margin-top: 2rem;
+}
+
+.btn-back:hover {
+    background-color: #323644;
+}
+
+/* Resultados */
+.macros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.macro-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.4rem;
+    text-align: center;
+}
+
+.macro-box.highlight {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(181, 232, 63, 0.12) 0%, var(--bg-card) 100%);
+}
+
+.macro-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+}
+
+.macro-num {
+    display: block;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.macro-unit {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.alert-warning {
+    background: rgba(241, 196, 15, 0.12);
+    border: 1px solid rgba(241, 196, 15, 0.4);
+    border-radius: 14px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.alert-warning h3 {
+    margin: 0 0 0.5rem 0;
+    color: #f1c40f;
+    font-size: 1rem;
+}
+
+.alert-warning ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #f8e596;
+    font-size: 0.9rem;
+}
+
+.alert-error {
+    background: rgba(231, 76, 60, 0.15);
+    border: 1px solid #e74c3c;
+    color: #ff9f94;
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.days-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.day-tab {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.day-tab.active,
+.day-tab:hover {
+    background: var(--accent);
+    color: #111215;
+    border-color: var(--accent);
+}
+
+.meal-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.meal-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.meal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.meal-time {
+    background: rgba(181, 232, 63, 0.15);
+    color: var(--accent);
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.meal-title h3 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.meal-macros-badge {
+    text-align: right;
+}
+
+.meal-macros-badge strong {
+    display: block;
+    color: var(--accent);
+    font-size: 1.05rem;
+}
+
+.meal-macros-badge span {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.foods-table {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.foods-subtitle {
+    margin: 0 0 0.6rem 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.foods-table ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.5rem;
+}
+
+.foods-table li {
+    background: var(--bg-card);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.food-name small {
+    color: var(--text-muted);
+}
+
+.food-grams {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.empty-foods {
+    margin: 0.8rem 0 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
