@@ -66,6 +66,19 @@ def predecir():
     # 2. Filtros de seguridad (Checklists)
     enfermedades = request.form.getlist("enfermedades")
     alergias = request.form.getlist("alergias")
+    # Captura el texto libre de "otra_alergia"
+    otra_alergia_texto = request.form.get("otra_alergia", "").strip()
+
+    print("Texto recibido de otra_alergia:", repr(otra_alergia_texto))  # Diagnóstico
+
+    if "otra" in alergias and otra_alergia_texto:
+        alergias.remove("otra")
+        alergias_personalizadas = [
+            item.strip().lower() for item in otra_alergia_texto.split(",") if item.strip()
+        ]
+        alergias.extend(alergias_personalizadas)
+
+    print("Alergias recibidas:", alergias)
 
     # 3. Horarios y rutina
     hora_despertar = request.form.get("hora_despertar", "07:00")

@@ -102,7 +102,7 @@ def etiquetas_prohibidas(enfermedades=None, alergias=None):
             )
             continue
         if clave not in ALERGIAS_A_ETIQUETAS:
-            avisos.append(f"Alergia no reconocida: '{alergia}'. Revisar manualmente.")
+            prohibidas.add(f"custom:{clave}")
             continue
         prohibidas |= ALERGIAS_A_ETIQUETAS[clave]
 
@@ -125,9 +125,25 @@ def filtrar_alimentos(lista_alimentos, etiquetas_a_evitar):
     permitidos = []
     excluidos = []
 
+# 1. Extraemos las alergias personalizadas (las que empiezan con "custom:")
+    palabras_prohibidas = [
+        etiqueta.split("custom:", 1)[1]
+        for etiqueta in etiquetas_a_evitar
+        if etiqueta.startswith("custom:")
+    ]
+
     for alimento in lista_alimentos:
         etiquetas_alimento = set(alimento.get("etiquetas", []))
         choque = etiquetas_alimento & etiquetas_a_evitar
+
+        # 2. Revisamos si el nombre del alimento coincide con alguna palabra prohibida
+        nombre_es = alimento.get("nombre", "").lower()
+        nombre_en = alimento.get("nombre_usda", "").lower()
+
+        for palabra in palabras_prohibidas:
+            if palabra in nombre_es or palabra in nombre_en:
+                choque.add(f"alergia:{palabra}")
+
         if choque:
             excluidos.append({**alimento, "motivo_exclusion": sorted(choque)})
         else:

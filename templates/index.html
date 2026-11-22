@@ -132,7 +132,18 @@
                         <label class="pill-check"><input type="checkbox" name="alergias" value="mariscos"><span>Mariscos</span></label>
                         <label class="pill-check"><input type="checkbox" name="alergias" value="huevo"><span>Huevo</span></label>
                         <label class="pill-check"><input type="checkbox" name="alergias" value="soya"><span>Soya</span></label>
-                        <label class="pill-check"><input type="checkbox" name="alergias" value="otra"><span>Otra</span></label>
+                        <label class="pill-check"><input type="checkbox" name="alergias" value="otra" id="check-otra-alergia"><span>Otra</span></label>
+                            
+                            <!-- Caja de texto oculta por defecto -->
+                            <div id="contenedor-otra-alergia" class="form-group" style="display: none; margin-top: 12px;">
+                            <input 
+                                type="text" 
+                                id="input-otra-alergia" 
+                                name="otra_alergia" 
+                                placeholder="Ej. Fresa, piña, avena (separadas por coma)"
+                                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #181a1f; color: #fff;"
+                            >
+                            </div>
                     </div>
                 </div>
             </section>
@@ -260,6 +271,21 @@
                 btn.style.opacity = '0.8';
             }
         }
+    </script>
+    <script>
+        const checkOtraAlergia = document.getElementById("check-otra-alergia");
+        const contenedorOtraAlergia = document.getElementById("contenedor-otra-alergia");
+        const inputOtraAlergia = document.getElementById("input-otra-alergia");
+
+        checkOtraAlergia.addEventListener("change", function () {
+            if (this.checked) {
+            contenedorOtraAlergia.style.display = "block";
+            inputOtraAlergia.focus();
+            } else {
+            contenedorOtraAlergia.style.display = "none";
+            inputOtraAlergia.value = ""; // Limpia el texto si se desmarca
+            }
+    });
     </script>
 </body>
 </html>
