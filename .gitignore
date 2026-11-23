@@ -1,7 +1,7 @@
 venv/
 __pycache__/
 *.pyc
-data/raw/
-data/processed/
+# Datos/ y models/modelo_dieta.keras SÍ se versionan: la app los necesita
+# (scaler.pkl, encoder.pkl y el modelo entrenado).
 models/*.h5
 .env

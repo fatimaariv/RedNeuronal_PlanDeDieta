@@ -41,3 +41,7 @@ ejemplo
 2. Lógica de horarios y preferencias — Sistema aparte que combina la predicción con horarios, alergias e ingredientes disponibles
 3. Integración con API de USDA — Convertir los macros predichos en alimentos reales
 4. (Opcional) Interfaz — Formulario visual para que el usuario final interactúe sin usar la terminal
+
+Pruebas automáticas (rama correcciones-revision)
+    python3 -m unittest discover -s tests -v
+No necesitan Internet ni clave de USDA: usan un catálogo de prueba.
