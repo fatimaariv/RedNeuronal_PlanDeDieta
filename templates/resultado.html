@@ -55,7 +55,7 @@
             <div class="days-tabs">
                 {% for dia in datos.plan_semana.keys() %}
                 <button type="button" class="day-tab {% if loop.first %}active{% endif %}" onclick="seleccionarDia('{{ dia }}', this)">
-                    {{ dia.capitalize() }}
+                    {{ nombres_dia.get(dia, dia.capitalize()) if nombres_dia else dia.capitalize() }}
                 </button>
                 {% endfor %}
             </div>
