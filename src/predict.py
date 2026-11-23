@@ -39,6 +39,11 @@ columnas_categoricas = ["sexo", "nivel_actividad", "objetivo"]
 # Nombres de lo que la red predice, en el mismo orden que y_train/y_test
 nombres_salidas = ["calorias_diarias", "proteina_g", "carbohidratos_g", "grasas_g"]
 
+# Mínimo de seguridad: el mismo piso que usa generar_datos.py. La red es una
+# aproximación y en algunos casos (personas pequeñas, sedentarias, que quieren
+# bajar) predice menos de 1,200 kcal aunque la fórmula nunca baje de ahí.
+CALORIAS_MINIMAS = 1200
+
 
 def predecir_usuario(edad, sexo, altura_cm, peso_kg, nivel_actividad, objetivo):
     """
@@ -92,14 +97,22 @@ def predecir_usuario(edad, sexo, altura_cm, peso_kg, nivel_actividad, objetivo):
     # prediccion es un array con 1 fila y 4 columnas (calorías, proteína,
     # carbohidratos, grasas). Tomamos esa única fila con [0].
     resultado = {
-        nombre: round(float(valor), 1)
+        nombre: float(valor)
         for nombre, valor in zip(nombres_salidas, prediccion[0])
     }
 
-    return resultado
+    # --- 7. Aplicar el mínimo de seguridad de calorías ---
+    # Si la red predice menos de CALORIAS_MINIMAS, se escalan las calorías
+    # y los tres macros por el mismo factor (se conserva su proporción).
+    if resultado["calorias_diarias"] < CALORIAS_MINIMAS:
+        factor = CALORIAS_MINIMAS / max(resultado["calorias_diarias"], 1.0)
+        resultado = {nombre: valor * factor for nombre, valor in resultado.items()}
+        resultado["calorias_diarias"] = CALORIAS_MINIMAS
+
+    return {nombre: round(valor, 1) for nombre, valor in resultado.items()}
 
 
-# --- 7. Modo interactivo: preguntarle a la red directamente en la terminal ---
+# --- 8. Modo interactivo: preguntarle a la red directamente en la terminal ---
 # Esto solo corre si ejecutas ESTE archivo directamente
 # (no corre si otro archivo hace "from predict import predecir_usuario").
 if __name__ == "__main__":
