@@ -23,7 +23,7 @@ try:
 except ImportError:
     nnls = None
 
-from predict import predecir_usuario
+from predict import predecir_usuario, CALORIAS_MINIMAS
 from filtros_seguridad import etiquetas_prohibidas, filtrar_alimentos
 from usda_api import buscar_y_convertir
 from horarios import armar_plan_dia
@@ -125,7 +125,8 @@ def _vector_nutrientes_por_gramo(alimento):
     return [v / 100.0 for v in valores]
 
 
-def armar_alimentos_comida(macros_comida, catalogo, gramos_minimos=5, max_alimentos=6):
+def armar_alimentos_comida(macros_comida, catalogo, gramos_minimos=5, max_alimentos=6,
+                           evitar_nombres=None):
     """
     Dado el objetivo de macros de UNA comida y el catálogo de alimentos
     permitidos (ya pasaron el filtro de seguridad), elige una
@@ -155,9 +156,12 @@ def armar_alimentos_comida(macros_comida, catalogo, gramos_minimos=5, max_alimen
 
     # Aplanar el catálogo (categoria -> lista de alimentos) en una sola
     # lista, sin perder de qué categoría venía cada uno.
+    evitar_nombres = evitar_nombres or set()
     pool = []
     for categoria, alimentos in catalogo.items():
         for alimento in alimentos:
+            if alimento["nombre"] in evitar_nombres:
+                continue  # se usó en la comida anterior o el mismo día anterior
             vector = _vector_nutrientes_por_gramo(alimento)
             if vector is None:
                 continue  # a este alimento le falta proteina/carbos/grasas en USDA
@@ -199,6 +203,44 @@ def armar_alimentos_comida(macros_comida, catalogo, gramos_minimos=5, max_alimen
     return alimentos_elegidos, macros_logrados
 
 
+def _error_relativo_maximo(objetivo, logrado):
+    """Mayor diferencia relativa entre lo logrado y el objetivo (0.1 = 10%)."""
+    errores = [
+        abs(logrado[n] - objetivo[n]) / objetivo[n]
+        for n in NOMBRES_MACROS if objetivo.get(n)
+    ]
+    return max(errores) if errores else 1.0
+
+
+def armar_alimentos_con_variedad(macros_comida, catalogo, evitar_fuerte, evitar_suave,
+                                 tolerancia=0.10):
+    """
+    Busca una combinación que NO repita los alimentos indicados, para que el
+    plan no sea idéntico en todas las comidas y todos los días.
+
+    Prueba en orden:
+      1. sin los alimentos de evitar_fuerte ni evitar_suave,
+      2. sin los de evitar_fuerte,
+      3. con todo el catálogo (comportamiento original).
+    Se queda con el primer intento que llegue al objetivo dentro de la
+    tolerancia; si ninguno llega, con el de menor error.
+    """
+    intentos = [evitar_fuerte | evitar_suave, evitar_fuerte, set()]
+    mejor = None
+    for evitar in intentos:
+        alimentos, logrados = armar_alimentos_comida(macros_comida, catalogo, evitar_nombres=evitar)
+        if not alimentos:
+            continue
+        error = _error_relativo_maximo(macros_comida, logrados)
+        if error <= tolerancia:
+            return alimentos, logrados
+        if mejor is None or error < mejor[2]:
+            mejor = (alimentos, logrados, error)
+    if mejor is None:
+        return [], {nombre: 0.0 for nombre in NOMBRES_MACROS}
+    return mejor[0], mejor[1]
+
+
 def generar_plan_semana(
     edad, sexo, altura_cm, peso_kg, nivel_actividad, objetivo,
     enfermedades, alergias,
@@ -230,17 +272,38 @@ def generar_plan_semana(
         nivel_actividad=nivel_actividad, objetivo=objetivo,
     )
 
+    if resultado_red["calorias_diarias"] <= CALORIAS_MINIMAS:
+        avisos_red = [
+            f"La estimación quedó por debajo del mínimo de seguridad: se ajustó a "
+            f"{CALORIAS_MINIMAS} kcal al día. Consulta a un especialista antes de seguir "
+            "un plan con tan pocas calorías."
+        ]
+    else:
+        avisos_red = []
+
     # --- 2. Filtros de seguridad ---
     etiquetas_evitar, avisos = etiquetas_prohibidas(enfermedades, alergias)
+    avisos = avisos_red + avisos
 
     # --- 3. Catálogo de alimentos reales ya filtrado (opcional, tarda por la API) ---
     catalogo = {}
     if incluir_catalogo_usda:
         catalogo = obtener_catalogo_alimentos(etiquetas_evitar)
+        if not any(catalogo.values()):
+            avisos.append(
+                "No se pudieron obtener alimentos de USDA (revisa la conexión o la clave "
+                "en .env); el plan se muestra sin alimentos."
+            )
+    elif etiquetas_evitar:
+        avisos.append(
+            "No se consultaron alimentos reales (USDA), así que tus enfermedades o "
+            "alergias no se aplicaron a ningún alimento: tenlas en cuenta al elegir qué comer."
+        )
 
     # --- 4. Horario de comidas por cada día de la semana ---
     descansos_por_dia = descansos_por_dia or {}
     plan_semana = {}
+    usados_dia_anterior = {}  # tipo de comida -> nombres de alimentos usados
     for dia, actividades in actividades_por_dia.items():
         descansos = descansos_por_dia.get(dia)
         comidas_dia = armar_plan_dia(
@@ -253,13 +316,25 @@ def generar_plan_semana(
         )
 
         # --- 5. Asignar alimentos reales y gramos a cada comida ---
-        # (combinación libre vía NNLS, no un alimento fijo por categoría)
+        # (combinación libre vía NNLS, no un alimento fijo por categoría).
+        # Para dar variedad se evita repetir los alimentos de la misma comida
+        # del día anterior y, si se puede, los de la comida anterior del día.
+        usados_hoy = {}
+        usados_comida_anterior = set()
         if asignar_alimentos and catalogo:
             for comida in comidas_dia:
                 macros_objetivo = {nombre: comida[nombre] for nombre in NOMBRES_MACROS}
-                alimentos, logrados = armar_alimentos_comida(macros_objetivo, catalogo)
+                alimentos, logrados = armar_alimentos_con_variedad(
+                    macros_objetivo,
+                    catalogo,
+                    evitar_fuerte=usados_dia_anterior.get(comida["comida"], set()),
+                    evitar_suave=usados_comida_anterior,
+                )
                 comida["alimentos"] = alimentos
-                comida["macros_logrados"] = logrados
+                comida["macros_logrados"] = {k: float(v) for k, v in logrados.items()}
+                usados_comida_anterior = {a["nombre"] for a in alimentos}
+                usados_hoy[comida["comida"]] = usados_comida_anterior
+        usados_dia_anterior = usados_hoy
 
         plan_semana[dia] = comidas_dia
 

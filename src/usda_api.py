@@ -30,6 +30,8 @@ import os
 import re
 import requests
 
+from filtros_seguridad import contiene_palabra
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -54,15 +56,36 @@ PALABRAS_ETIQUETA = {
                "malta"],
     "frutos_secos": ["peanut", "cacahuate", "almond", "almendra", "walnut",
                       "nuez", "cashew", "pistachio", "pistache",
-                      "hazelnut", "avellana", "pecan"],
-    "mariscos": ["shrimp", "camaron", "camarón", "crab", "cangrejo",
+                      "hazelnut", "avellana", "pecan", "nut", "tree nut"],
+    # Solo mariscos (crustáceos y moluscos). El pescado NO es marisco, por
+    # eso ya no se incluyen "fish" ni "pescado" (antes excluían el salmón).
+    "mariscos": ["shrimp", "camaron", "crab", "cangrejo",
                  "lobster", "langosta", "shellfish", "clam", "almeja",
-                 "oyster", "ostion", "mussel", "mejillon", "fish", "pescado"],
+                 "oyster", "ostion", "mussel", "mejillon", "scallop",
+                 "prawn"],
     "huevo": ["egg", "huevo"],
-    "soya": ["soy", "soya", "soja", "soybean", "soybeans", "soyabean",
-             "soymilk"],
+    "soya": ["soy", "soya", "soja", "soybean", "soyabean", "soymilk"],
 }
 
+# Frases que contienen una palabra clave pero NO son ese alérgeno.
+# Se borran del texto antes de buscar las palabras de esa etiqueta.
+# Ej.: "peanut butter" no es lácteo (sí es fruto seco, por "peanut").
+FRASES_FALSO_POSITIVO = {
+    "lactosa": [
+        r"\b(?:peanut|almond|cashew|nut|seed|sunflower|apple|cocoa|shea|cacahuate)s? butter\b",
+        r"\bcrema de (?:cacahuate|almendras?)\b",
+        r"\b(?:coconut|almond|soy|soya|oat|rice|cashew|hazelnut)s? milk\b",
+        r"\bleche de (?:coco|almendras?|soya|avena|arroz)\b",
+        r"\bcream of (?:rice|wheat|tartar)\b",
+        r"\bbutternut\b",
+    ],
+    "frutos_secos": [
+        r"\bcoconut\b",
+        r"\bnutmeg\b",
+        r"\bbutternut\b",
+        r"\bnutritional\b",
+    ],
+}
 
 def buscar_alimentos(query, page_size=10, api_key=None):
     """
@@ -99,6 +122,32 @@ def _extraer_nutriente(alimento_json, nombres_buscados):
     return None
 
 
+def _extraer_energia_kcal(alimento_json):
+    """
+    Devuelve la energía en kcal. USDA puede mandar "Energy" en kcal y en kJ
+    (a veces el kJ aparece primero); antes se tomaba el primero sin revisar
+    la unidad. Se prefiere el valor en KCAL; si solo hay kJ, se convierte.
+    """
+    valor_kj = None
+    for nutriente in alimento_json.get("foodNutrients", []):
+        nombre = (nutriente.get("nutrientName") or "").lower()
+        if "energy" not in nombre:
+            continue
+        unidad = (nutriente.get("unitName") or "").lower()
+        valor = nutriente.get("value")
+        if valor is None:
+            continue
+        if unidad == "kcal":
+            return valor
+        if unidad == "kj" and valor_kj is None:
+            valor_kj = valor
+        elif not unidad:
+            return valor  # sin unidad: se asume kcal, como antes
+    if valor_kj is not None:
+        return round(valor_kj / 4.184, 1)
+    return None
+
+
 def inferir_etiquetas(alimento_json):
     """
     A partir de un alimento tal como lo devuelve la API de USDA,
@@ -129,11 +178,13 @@ def inferir_etiquetas(alimento_json):
     ]).lower()
 
     for etiqueta, palabras in PALABRAS_ETIQUETA.items():
-        # \b...\b exige que la palabra clave aparezca COMPLETA (con límites
-        # de palabra a los lados), no como parte de otra palabra más larga.
-        # Esto evita falsos positivos como "malt" haciendo match dentro de
-        # "maltodextrin" (que normalmente no contiene gluten).
-        if any(re.search(r"\b" + re.escape(palabra) + r"\b", texto) for palabra in palabras):
+        texto_etiqueta = texto
+        for frase in FRASES_FALSO_POSITIVO.get(etiqueta, []):
+            texto_etiqueta = re.sub(frase, " ", texto_etiqueta)
+        # contiene_palabra() exige la palabra COMPLETA y acepta plurales
+        # ("almonds", "eggs", "nueces"); antes "Nuts, almonds" o "Eggs"
+        # no se detectaban y podían pasar el filtro de alergias.
+        if any(contiene_palabra(texto_etiqueta, palabra) for palabra in palabras):
             etiquetas.add(etiqueta)
 
     return etiquetas
@@ -143,9 +194,10 @@ def usda_a_formato_interno(alimento_json):
     return {
         "nombre": alimento_json.get("description", "Alimento sin nombre"),
         "fdc_id": alimento_json.get("fdcId"),
+        "ingredientes": alimento_json.get("ingredients", "") or "",
         "etiquetas": inferir_etiquetas(alimento_json),
         "info_nutricional": {
-            "calorias": _extraer_nutriente(alimento_json, ["energy"]),
+            "calorias": _extraer_energia_kcal(alimento_json),
             "sodio_mg": _extraer_nutriente(alimento_json, ["sodium"]),
             "azucar_g": _extraer_nutriente(alimento_json, ["sugars, total", "total sugars", "sugars"]),
             "proteina_g": _extraer_nutriente(alimento_json, ["protein"]),

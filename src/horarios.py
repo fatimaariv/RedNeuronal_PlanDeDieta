@@ -43,7 +43,16 @@ _ORDEN_TIPICO = ["desayuno", "snack_manana", "comida", "snack", "snack_tarde", "
 
 def _a_minutos(hora_str):
     """Convierte 'HH:MM' a minutos desde medianoche."""
-    h, m = map(int, hora_str.split(":"))
+    try:
+        h, m = map(int, str(hora_str).strip().split(":")[:2])
+    except (ValueError, AttributeError):
+        raise ValueError(
+            f"La hora '{hora_str}' no es válida: usa el formato HH:MM (por ejemplo 07:30)."
+        )
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError(
+            f"La hora '{hora_str}' no es válida: usa el formato HH:MM (por ejemplo 07:30)."
+        )
     return h * 60 + m
 
 
@@ -63,7 +72,19 @@ def _normalizar_bloques(bloques, inicio_dia, fin_dia):
     for b in bloques:
         ini = _a_minutos(b["inicio"])
         fin = _a_minutos(b["fin"])
-        if fin <= ini:
+        if fin == ini:
+            nombre = b.get("nombre", "actividad").replace("_", " ")
+            raise ValueError(
+                f"El horario de '{nombre}' empieza y termina a la misma hora ({b['inicio']}): "
+                "revisa la hora de fin."
+            )
+        if fin < ini:
+            fin += 24 * 60
+        # Si la persona se duerme después de medianoche, un bloque como
+        # 00:00-00:45 pertenece al final de su día, no al inicio: se recorre
+        # 24 h. Antes se ignoraba y podía caer una comida encima.
+        if fin <= inicio_dia:
+            ini += 24 * 60
             fin += 24 * 60
         ini = max(ini, inicio_dia)
         fin = min(fin, fin_dia)
@@ -115,7 +136,11 @@ def calcular_ventanas_libres(hora_despertar, hora_dormir, actividades, descansos
 
     inicio_dia = _a_minutos(hora_despertar)
     fin_dia = _a_minutos(hora_dormir)
-    if fin_dia <= inicio_dia:
+    if fin_dia == inicio_dia:
+        raise ValueError(
+            "La hora de dormir no puede ser igual a la hora de despertar."
+        )
+    if fin_dia < inicio_dia:
         fin_dia += 24 * 60
 
     bloques_originales = _normalizar_bloques(actividades, inicio_dia, fin_dia)

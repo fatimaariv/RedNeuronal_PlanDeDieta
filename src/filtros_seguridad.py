@@ -23,6 +23,34 @@ Cómo correrlo (modo de prueba, con datos de ejemplo):
     python3 src/filtros_seguridad.py
 """
 
+import re
+import unicodedata
+
+
+def normalizar_texto(texto):
+    """Minúsculas y sin acentos, para comparar 'Salmón' con 'salmon'."""
+    texto = unicodedata.normalize("NFKD", (texto or "").lower())
+    return "".join(c for c in texto if not unicodedata.combining(c))
+
+
+def contiene_palabra(texto, palabra):
+    """
+    True si 'palabra' aparece COMPLETA en 'texto' (también en plural:
+    almendra/almendras, egg/eggs, nuez/nueces). Ignora mayúsculas y acentos.
+    Evita falsos positivos por subcadenas: 'pa' ya no coincide con 'Papa'.
+    """
+    texto = normalizar_texto(texto)
+    palabra = normalizar_texto(palabra).strip()
+    if not palabra:
+        return False
+    if palabra.endswith("z"):
+        # nuez -> nueces, maiz -> maices
+        patron = r"\b(?:" + re.escape(palabra) + "|" + re.escape(palabra[:-1] + "ces") + r")\b"
+    else:
+        patron = r"\b" + re.escape(palabra) + r"(?:s|es)?\b"
+    return re.search(patron, texto) is not None
+
+
 # --- Alergias: mapeo directo, 1 a 1 ---
 # Si el usuario marca esta alergia, se prohíbe esta etiqueta exacta.
 ALERGIAS_A_ETIQUETAS = {
@@ -102,7 +130,13 @@ def etiquetas_prohibidas(enfermedades=None, alergias=None):
             )
             continue
         if clave not in ALERGIAS_A_ETIQUETAS:
+            # Alergia escrita por el usuario en "Otra alergia": se filtra
+            # buscando la palabra en el nombre e ingredientes de cada alimento.
             prohibidas.add(f"custom:{clave}")
+            avisos.append(
+                f"Alergia personalizada '{alergia.strip()}': solo se excluyen los alimentos "
+                "cuyo nombre o ingredientes la mencionan. Revisa manualmente el plan."
+            )
             continue
         prohibidas |= ALERGIAS_A_ETIQUETAS[clave]
 
@@ -125,7 +159,7 @@ def filtrar_alimentos(lista_alimentos, etiquetas_a_evitar):
     permitidos = []
     excluidos = []
 
-# 1. Extraemos las alergias personalizadas (las que empiezan con "custom:")
+    # Alergias personalizadas (las que empiezan con "custom:")
     palabras_prohibidas = [
         etiqueta.split("custom:", 1)[1]
         for etiqueta in etiquetas_a_evitar
@@ -136,12 +170,15 @@ def filtrar_alimentos(lista_alimentos, etiquetas_a_evitar):
         etiquetas_alimento = set(alimento.get("etiquetas", []))
         choque = etiquetas_alimento & etiquetas_a_evitar
 
-        # 2. Revisamos si el nombre del alimento coincide con alguna palabra prohibida
-        nombre_es = alimento.get("nombre", "").lower()
-        nombre_en = alimento.get("nombre_usda", "").lower()
-
+        # Revisamos si el nombre (español o inglés) o los ingredientes
+        # mencionan alguna alergia personalizada, como palabra completa.
+        texto_alimento = " ".join([
+            alimento.get("nombre", "") or "",
+            alimento.get("nombre_usda", "") or "",
+            alimento.get("ingredientes", "") or "",
+        ])
         for palabra in palabras_prohibidas:
-            if palabra in nombre_es or palabra in nombre_en:
+            if contiene_palabra(texto_alimento, palabra):
                 choque.add(f"alergia:{palabra}")
 
         if choque:
